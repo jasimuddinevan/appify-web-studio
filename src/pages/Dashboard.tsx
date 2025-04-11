@@ -16,6 +16,8 @@ const Dashboard = () => {
   const [webUrl, setWebUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadComplete, setDownloadComplete] = useState(false);
   
   // App customization options
   const [appName, setAppName] = useState("My Web App");
@@ -88,6 +90,41 @@ const Dashboard = () => {
         return newProgress;
       });
     }, 300);
+  };
+
+  // Handle APK download
+  const handleDownloadApk = () => {
+    // Set downloading state
+    setIsDownloading(true);
+    setDownloadComplete(false);
+
+    // Simulate file download delay
+    setTimeout(() => {
+      // Create a blob to simulate file download
+      const dummyContent = `Web to APK conversion for: ${webUrl}\nApp name: ${appName}\nGenerated on: ${new Date().toLocaleString()}`;
+      const blob = new Blob([dummyContent], { type: 'application/vnd.android.package-archive' });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${appName.replace(/\s+/g, '-').toLowerCase()}-app.apk`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      // Update states
+      setIsDownloading(false);
+      setDownloadComplete(true);
+      
+      // Reset download complete message after 5 seconds
+      setTimeout(() => {
+        setDownloadComplete(false);
+      }, 5000);
+    }, 1500);
   };
 
   return (
@@ -435,8 +472,27 @@ const Dashboard = () => {
                     </>
                   )}
                 </Button>
-                <Button variant="outline" size="lg" className="flex-1" disabled={isLoading || progress < 100}>
-                  Download APK
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="flex-1 flex gap-2 items-center justify-center" 
+                  disabled={isLoading || progress < 100 || isDownloading}
+                  onClick={handleDownloadApk}
+                >
+                  {isDownloading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-5 h-5" />
+                      Download APK
+                    </>
+                  )}
                 </Button>
               </div>
               
@@ -458,6 +514,15 @@ const Dashboard = () => {
                       />
                     </div>
                   )}
+                </div>
+              )}
+              
+              {downloadComplete && (
+                <div className="mt-6 glass-card p-4 bg-green-50 border border-green-100">
+                  <div className="flex items-center justify-center gap-2 text-green-600">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <p className="font-medium">APK downloaded successfully!</p>
+                  </div>
                 </div>
               )}
             </div>
