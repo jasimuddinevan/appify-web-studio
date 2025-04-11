@@ -449,6 +449,15 @@ const Dashboard = () => {
                     />
                   </div>
                   <p className="text-center text-sm mt-2">Building your Android app... {progress}% complete</p>
+                  {progress === 100 && (
+                    <div className="flex justify-center mt-4">
+                      <img 
+                        src="/lovable-uploads/a16f60a1-65a0-4bf5-b8f0-c7124ac41002.png" 
+                        alt="WebToAPK Builder" 
+                        className="max-w-full h-auto max-h-40 rounded-lg shadow-sm"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
