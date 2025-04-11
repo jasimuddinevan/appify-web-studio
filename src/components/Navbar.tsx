@@ -1,10 +1,37 @@
 
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export const Navbar = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Handle scroll event to change navbar transparency
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    
+    // Cleanup the event listener on component unmount
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 py-4 px-6 md:px-12">
+    <header 
+      className={`fixed top-0 left-0 right-0 z-50 py-4 px-6 md:px-12 transition-all duration-300 ${
+        isScrolled 
+          ? "bg-white/80 backdrop-blur-md shadow-sm" 
+          : "bg-transparent"
+      }`}
+    >
       <nav className="container mx-auto flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <div className="text-2xl font-bold gradient-text">WebToAPK</div>
