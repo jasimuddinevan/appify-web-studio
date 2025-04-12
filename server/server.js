@@ -75,6 +75,8 @@ app.post('/api/generate-apk', async (req, res) => {
     const {
       webUrl,
       appName,
+      companyName,
+      packageName,
       appIconId,
       splashScreenId,
       primaryColor,
@@ -83,7 +85,8 @@ app.post('/api/generate-apk', async (req, res) => {
       pushNotifications,
       screenOrientation,
       zoomEnabled,
-      cacheLevel
+      cacheLevel,
+      navButtons
     } = req.body;
 
     if (!webUrl || !appName) {
@@ -120,6 +123,8 @@ app.post('/api/generate-apk', async (req, res) => {
       buildDir,
       webUrl,
       appName,
+      companyName,
+      packageName,
       appIconPath,
       splashScreenPath,
       primaryColor,
@@ -129,6 +134,7 @@ app.post('/api/generate-apk', async (req, res) => {
       screenOrientation,
       zoomEnabled,
       cacheLevel,
+      navButtons,
       buildId
     });
 

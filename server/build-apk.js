@@ -19,6 +19,8 @@ async function buildApk(options) {
       buildDir,
       webUrl,
       appName,
+      companyName = 'Web to APK Builder',
+      packageName = 'com.webapk.app',
       appIconPath,
       splashScreenPath,
       primaryColor = '#3498db',
@@ -28,6 +30,7 @@ async function buildApk(options) {
       screenOrientation = 'portrait',
       zoomEnabled = false,
       cacheLevel = 'minimal',
+      navButtons = [],
       buildId,
       signApk = true
     } = options;

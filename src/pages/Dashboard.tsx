@@ -21,6 +21,8 @@ const Dashboard = () => {
   
   // App customization options
   const [appName, setAppName] = useState("My Web App");
+  const [companyName, setCompanyName] = useState("My Company");
+  const [packageName, setPackageName] = useState("com.mycompany.webapp");
   const [appIcon, setAppIcon] = useState<File | null>(null);
   const [appIconPreview, setAppIconPreview] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#6366F1");
@@ -32,6 +34,7 @@ const Dashboard = () => {
   const [screenOrientation, setScreenOrientation] = useState("portrait");
   const [zoomEnabled, setZoomEnabled] = useState(true);
   const [cacheLevel, setCacheLevel] = useState(50);
+  const [navButtons, setNavButtons] = useState<Array<{text: string, url: string}>>([]);
 
   useEffect(() => {
     // Retrieve the URL from localStorage
@@ -151,6 +154,8 @@ const Dashboard = () => {
         const appConfig = {
           webUrl,
           appName,
+          companyName,
+          packageName,
           appIconId,
           splashScreenId,
           primaryColor,
@@ -159,7 +164,8 @@ const Dashboard = () => {
           pushNotifications,
           screenOrientation,
           zoomEnabled,
-          cacheLevel
+          cacheLevel,
+          navButtons
         };
         
         console.log("Building app with configuration:", appConfig);
