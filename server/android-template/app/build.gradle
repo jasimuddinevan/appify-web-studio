@@ -1,0 +1,64 @@
+
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    compileSdkVersion 33
+    
+    defaultConfig {
+        applicationId "com.appify.webview"
+        minSdkVersion 21
+        targetSdkVersion 33
+        versionCode 1
+        versionName "1.0"
+        
+        // Replace these with actual values during the build process
+        manifestPlaceholders = [
+            appName: project.hasProperty('APP_NAME') ? APP_NAME : "Appify WebView",
+            primaryColor: project.hasProperty('PRIMARY_COLOR') ? PRIMARY_COLOR : "#3498db",
+            screenOrientation: project.hasProperty('SCREEN_ORIENTATION') ? SCREEN_ORIENTATION : "portrait"
+        ]
+        
+        buildConfigField "String", "WEB_URL", project.hasProperty('WEB_URL') ? "\"${WEB_URL}\"" : "\"https://example.com\""
+        buildConfigField "boolean", "OFFLINE_SUPPORT", project.hasProperty('OFFLINE_SUPPORT') ? OFFLINE_SUPPORT : "false"
+        buildConfigField "boolean", "ZOOM_ENABLED", project.hasProperty('ZOOM_ENABLED') ? ZOOM_ENABLED : "false"
+        buildConfigField "String", "CACHE_LEVEL", project.hasProperty('CACHE_LEVEL') ? "\"${CACHE_LEVEL}\"" : "\"minimal\""
+        buildConfigField "String", "NAVIGATION_STYLE", project.hasProperty('NAVIGATION_STYLE') ? "\"${NAVIGATION_STYLE}\"" : "\"standard\""
+        buildConfigField "boolean", "PUSH_NOTIFICATIONS", project.hasProperty('PUSH_NOTIFICATIONS') ? PUSH_NOTIFICATIONS : "false"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('../keystore/appify-release-key.keystore')
+            storePassword 'appifypassword'
+            keyAlias 'appifykey'
+            keyPassword 'appifypassword'
+        }
+    }
+    
+    buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'androidx.webkit:webkit:1.6.1'
+}

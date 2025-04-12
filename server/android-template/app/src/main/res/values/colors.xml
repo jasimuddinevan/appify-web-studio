@@ -1,0 +1,9 @@
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">${primaryColor}</color>
+    <color name="colorPrimaryDark">${primaryColor}</color>
+    <color name="colorAccent">${primaryColor}</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>
