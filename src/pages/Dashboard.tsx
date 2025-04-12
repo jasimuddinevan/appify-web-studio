@@ -352,6 +352,27 @@ const Dashboard = () => {
                             placeholder="My Web App"
                           />
                         </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="companyName">Company Name</Label>
+                          <Input 
+                            id="companyName"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                            placeholder="My Company"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="packageName">Package Name</Label>
+                          <Input 
+                            id="packageName"
+                            value={packageName}
+                            onChange={(e) => setPackageName(e.target.value)}
+                            placeholder="com.mycompany.webapp"
+                          />
+                          <p className="text-xs text-gray-500">Format: com.company.appname (only lowercase letters, numbers, and dots)</p>
+                        </div>
                         
                         <div className="space-y-2">
                           <Label htmlFor="appIcon">App Icon</Label>
@@ -537,6 +558,70 @@ const Dashboard = () => {
                             checked={zoomEnabled}
                             onCheckedChange={setZoomEnabled}
                           />
+                        </div>
+
+                        <div className="mt-8">
+                          <div className="flex justify-between items-center mb-4">
+                            <Label htmlFor="navButtons">Navigation Buttons</Label>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                if (navButtons.length < 5) {
+                                  setNavButtons([...navButtons, {text: '', url: ''}]);
+                                }
+                              }}
+                              disabled={navButtons.length >= 5}
+                            >
+                              Add Button {navButtons.length}/5
+                            </Button>
+                          </div>
+                          
+                          {navButtons.length === 0 ? (
+                            <div className="text-center py-6 border border-dashed border-gray-300 rounded-lg">
+                              <p className="text-sm text-gray-500">Add up to 5 navigation buttons for your app</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {navButtons.map((button, index) => (
+                                <div key={index} className="flex gap-2 items-center">
+                                  <div className="flex-grow grid grid-cols-2 gap-2">
+                                    <Input
+                                      placeholder="Button Text"
+                                      value={button.text}
+                                      onChange={(e) => {
+                                        const newButtons = [...navButtons];
+                                        newButtons[index].text = e.target.value;
+                                        setNavButtons(newButtons);
+                                      }}
+                                    />
+                                    <Input
+                                      placeholder="URL (e.g., https://example.com)"
+                                      value={button.url}
+                                      onChange={(e) => {
+                                        const newButtons = [...navButtons];
+                                        newButtons[index].url = e.target.value;
+                                        setNavButtons(newButtons);
+                                      }}
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-red-500 h-9 w-9 p-0"
+                                    onClick={() => {
+                                      const newButtons = navButtons.filter((_, i) => i !== index);
+                                      setNavButtons(newButtons);
+                                    }}
+                                  >
+                                    ✕
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

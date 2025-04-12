@@ -7,7 +7,7 @@ android {
     compileSdkVersion 33
     
     defaultConfig {
-        applicationId "com.appify.webview"
+        applicationId project.hasProperty('PACKAGE_NAME') ? PACKAGE_NAME : "com.appify.webview"
         minSdkVersion 21
         targetSdkVersion 33
         versionCode 1
@@ -26,6 +26,8 @@ android {
         buildConfigField "String", "CACHE_LEVEL", project.hasProperty('CACHE_LEVEL') ? "\"${CACHE_LEVEL}\"" : "\"minimal\""
         buildConfigField "String", "NAVIGATION_STYLE", project.hasProperty('NAVIGATION_STYLE') ? "\"${NAVIGATION_STYLE}\"" : "\"standard\""
         buildConfigField "boolean", "PUSH_NOTIFICATIONS", project.hasProperty('PUSH_NOTIFICATIONS') ? PUSH_NOTIFICATIONS : "false"
+        buildConfigField "String", "COMPANY_NAME", project.hasProperty('COMPANY_NAME') ? "\"${COMPANY_NAME}\"" : "\"Web to APK Builder\""
+        buildConfigField "String", "NAV_BUTTONS", project.hasProperty('NAV_BUTTONS') ? NAV_BUTTONS : "\"[]\""
     }
 
     signingConfigs {
