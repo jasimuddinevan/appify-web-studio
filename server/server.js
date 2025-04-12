@@ -133,11 +133,22 @@ app.post('/api/generate-apk', async (req, res) => {
     });
 
     if (apkResult.success) {
-      res.status(200).json({
-        message: 'APK generated successfully',
-        buildId: buildId,
-        apkPath: apkResult.apkPath
-      });
+      // Include Google Drive information in the response if available
+      if (apkResult.googleDriveInfo) {
+        res.status(200).json({
+          message: 'APK generated and uploaded to Google Drive successfully',
+          buildId: buildId,
+          apkPath: apkResult.apkPath,
+          googleDriveLink: apkResult.googleDriveInfo.webContentLink,
+          googleDriveViewLink: apkResult.googleDriveInfo.webViewLink
+        });
+      } else {
+        res.status(200).json({
+          message: 'APK generated successfully',
+          buildId: buildId,
+          apkPath: apkResult.apkPath
+        });
+      }
     } else {
       res.status(500).json({
         error: 'Failed to generate APK',

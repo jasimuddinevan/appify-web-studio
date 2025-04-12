@@ -92,108 +92,146 @@ const Dashboard = () => {
     }, 300);
   };
 
+  // State to store Google Drive download link
+  const [googleDriveLink, setGoogleDriveLink] = useState("");
+  const [googleDriveViewLink, setGoogleDriveViewLink] = useState("");
+  const [error, setError] = useState("");
+
   // Handle APK download
   const handleDownloadApk = () => {
     // Set downloading state
     setIsDownloading(true);
     setDownloadComplete(false);
+    setError("");
+    setProgress(0);
     
     const buildApp = async () => {
       try {
-        // Communicate with a Capacitor app build service
-        // In a real-world scenario, this would send a request to a backend service that:
-        // 1. Takes the URL and configuration options
-        // 2. Uses Capacitor to generate a native Android app (wrapped WebView)
-        // 3. Signs the APK with production keys
-        // 4. Returns the finished APK
+        // First prepare the form data for file uploads
+        const formData = new FormData();
         
-        // For this demo, we'll simulate the process
+        // Add app icon if selected
+        if (appIcon) {
+          formData.append('appIcon', appIcon);
+        }
         
-        // First step: Generate configuration based on user preferences
+        // Add splash screen if selected
+        if (splashScreen) {
+          formData.append('splashScreen', splashScreen);
+        }
+        
+        let appIconId = null;
+        let splashScreenId = null;
+        
+        // Upload files first if they exist
+        if (appIcon || splashScreen) {
+          try {
+            const uploadResponse = await fetch('http://localhost:5000/api/upload-config', {
+              method: 'POST',
+              body: formData
+            });
+            
+            if (uploadResponse.ok) {
+              const uploadResult = await uploadResponse.json();
+              appIconId = uploadResult.appIcon;
+              splashScreenId = uploadResult.splashScreen;
+              
+              // Update progress to show files were uploaded
+              setProgress(10);
+            } else {
+              throw new Error("Failed to upload files");
+            }
+          } catch (uploadError) {
+            console.error("Error uploading files:", uploadError);
+            // Continue anyway, using defaults
+          }
+        }
+        
+        // Prepare app configuration
         const appConfig = {
-          url: webUrl,
-          name: appName,
-          orientation: screenOrientation,
-          theme_color: primaryColor,
-          offline_support: offlineSupport,
-          push_enabled: pushNotifications,
-          navigation_style: navigationStyle,
-          cache_level: cacheLevel,
-          zoom_enabled: zoomEnabled
+          webUrl,
+          appName,
+          appIconId,
+          splashScreenId,
+          primaryColor,
+          navigationStyle,
+          offlineSupport,
+          pushNotifications,
+          screenOrientation,
+          zoomEnabled,
+          cacheLevel
         };
         
         console.log("Building app with configuration:", appConfig);
         
-        // Simulate the build process with progress updates
-        for (let i = 0; i <= 100; i+= 5) {
-          await new Promise(resolve => setTimeout(resolve, 150));
-          setProgress(i);
+        // Start progress updates
+        setProgress(15);
+        const progressInterval = setInterval(() => {
+          setProgress(prev => {
+            if (prev >= 95) {
+              clearInterval(progressInterval);
+              return 95;
+            }
+            return prev + 5;
+          });
+        }, 1500);
+        
+        // Call the server API to generate the APK
+        const response = await fetch('http://localhost:5000/api/generate-apk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(appConfig)
+        });
+        
+        clearInterval(progressInterval);
+        
+        if (!response.ok) {
+          const errorResult = await response.json();
+          throw new Error(errorResult.error || "Failed to generate APK");
         }
         
-        // In a real implementation, we would download the actual APK file from the server
-        // For demo purposes, we'll provide a mock APK that would work for demonstration
+        const result = await response.json();
+        console.log("APK generated:", result);
         
-        // Create a more realistic APK structure (still a simulation)
-        const apkHeader = new Uint8Array([
-          // ZIP/APK signature
-          0x50, 0x4B, 0x03, 0x04,
-          // Version needed
-          0x14, 0x00,
-          // Flags
-          0x08, 0x00,
-          // Compression method (DEFLATE)
-          0x08, 0x00,
-          // Last mod time and date
-          0x00, 0x00, 0x00, 0x00,
-          // CRC32
-          0x00, 0x00, 0x00, 0x00,
-          // Compressed size
-          0xFF, 0xFF, 0x00, 0x00,
-          // Uncompressed size
-          0xFF, 0xFF, 0x00, 0x00,
-          // Filename length
-          0x1C, 0x00,
-          // Extra field length
-          0x00, 0x00
-        ]);
-        
-        // AndroidManifest.xml filename in UTF-8
-        const filenameBytes = new TextEncoder().encode("AndroidManifest.xml");
-        
-        // Combine header and filename
-        const headerAndFilename = new Uint8Array(apkHeader.length + filenameBytes.length);
-        headerAndFilename.set(apkHeader);
-        headerAndFilename.set(filenameBytes, apkHeader.length);
-        
-        // Fake manifest content (to make the file bigger and more realistic)
-        const manifestContentBytes = new Uint8Array(1024 * 1024); // 1MB
-        for (let i = 0; i < manifestContentBytes.length; i++) {
-          manifestContentBytes[i] = Math.floor(Math.random() * 256);
+        // Set Google Drive links if available
+        if (result.googleDriveLink) {
+          setGoogleDriveLink(result.googleDriveLink);
+          setGoogleDriveViewLink(result.googleDriveViewLink || result.googleDriveLink);
+          
+          // Complete progress
+          setProgress(100);
+          
+          // Update states
+          setIsLoading(false);
+          setIsDownloading(false);
+          setDownloadComplete(true);
+          
+          // Open the Google Drive link in a new tab
+          window.open(result.googleDriveLink, '_blank');
+        } else if (result.buildId) {
+          // If no Google Drive link but we have a buildId, use the direct download endpoint
+          const downloadUrl = `http://localhost:5000/api/download-apk/${result.buildId}?appName=${encodeURIComponent(appName)}`;
+          
+          // Create and click a download link
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `${appName.replace(/\s+/g, '-').toLowerCase()}-app.apk`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          // Complete progress
+          setProgress(100);
+          
+          // Update states
+          setIsLoading(false);
+          setIsDownloading(false);
+          setDownloadComplete(true);
+        } else {
+          throw new Error("No APK download information returned from server");
         }
-        
-        // Combine everything into a single byte array
-        const apkBytes = new Uint8Array(headerAndFilename.length + manifestContentBytes.length);
-        apkBytes.set(headerAndFilename);
-        apkBytes.set(manifestContentBytes, headerAndFilename.length);
-        
-        // Create download link
-        const blob = new Blob([apkBytes], { type: 'application/vnd.android.package-archive' });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${appName.replace(/\s+/g, '-').toLowerCase()}-app.apk`;
-        document.body.appendChild(a);
-        a.click();
-        
-        // Cleanup
-        URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        // Update states
-        setIsLoading(false);
-        setIsDownloading(false);
-        setDownloadComplete(true);
         
         // Reset download complete message after 5 seconds
         setTimeout(() => {
@@ -201,8 +239,10 @@ const Dashboard = () => {
         }, 5000);
       } catch (error) {
         console.error("Error generating APK:", error);
+        setError(error.message || "Failed to generate APK");
         setIsDownloading(false);
         setIsLoading(false);
+        setProgress(0);
       }
     };
     
