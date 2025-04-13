@@ -9,7 +9,7 @@ const { execSync } = require('child_process');
 const { createKeystore } = require('./create-keystore');
 
 /**
- * Builds an Android APK using the template
+ * Builds an Android APK using the template and prepares source code for download
  * @param {Object} options - Build options
  * @returns {Promise<Object>} - Build result
  */
@@ -132,17 +132,42 @@ NAV_BUTTONS=${JSON.stringify(navButtons)}
       fs.copyFileSync(placeholderApkPath, finalApkPath);
       
       fs.appendFileSync(logPath, `APK generated successfully at: ${finalApkPath}\n`);
+      
+      // Prepare source code ZIP file
+      fs.appendFileSync(logPath, 'Preparing source code ZIP file...\n');
+      const sourceCodePath = path.join(path.dirname(appDir), `${buildId}-source.zip`);
+      
+      try {
+        // Prepare the source code ZIP file
+        await prepareSourceCode(appDir, sourceCodePath, options);
+        fs.appendFileSync(logPath, `Source code ZIP generated successfully at: ${sourceCodePath}\n`);
+      } catch (sourceCodeError) {
+        fs.appendFileSync(logPath, `Warning: Could not prepare source code ZIP: ${sourceCodeError.message}\n`);
+        console.error('Source code ZIP error:', sourceCodeError);
+      }
+      
       fs.appendFileSync(logPath, `Build completed at: ${new Date().toISOString()}\n`);
       
       // Upload to Google Drive if the service is available
       let googleDriveInfo = null;
+      let sourceCodeDriveInfo = null;
+      
       try {
         const { uploadFileToDrive } = require('./services/googleDrive');
-        fs.appendFileSync(logPath, 'Uploading APK to Google Drive...\n');
         
+        // Upload APK to Google Drive
+        fs.appendFileSync(logPath, 'Uploading APK to Google Drive...\n');
         const apkFileName = `${appName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.apk`;
         googleDriveInfo = await uploadFileToDrive(finalApkPath, apkFileName);
         fs.appendFileSync(logPath, `APK uploaded to Google Drive: ${googleDriveInfo.webContentLink}\n`);
+        
+        // Upload source code ZIP to Google Drive
+        if (fs.existsSync(sourceCodePath)) {
+          fs.appendFileSync(logPath, 'Uploading source code to Google Drive...\n');
+          const sourceFileName = `${appName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}_source.zip`;
+          sourceCodeDriveInfo = await uploadFileToDrive(sourceCodePath, sourceFileName, 'application/zip');
+          fs.appendFileSync(logPath, `Source code uploaded to Google Drive: ${sourceCodeDriveInfo.webContentLink}\n`);
+        }
       } catch (driveError) {
         fs.appendFileSync(logPath, `Warning: Could not upload to Google Drive: ${driveError.message}\n`);
         console.error('Google Drive upload error:', driveError);
@@ -152,8 +177,10 @@ NAV_BUTTONS=${JSON.stringify(navButtons)}
       return {
         success: true,
         apkPath: finalApkPath,
+        sourceCodePath: fs.existsSync(sourceCodePath) ? sourceCodePath : null,
         buildId,
-        googleDriveInfo
+        googleDriveInfo,
+        sourceCodeDriveInfo
       };
     } catch (error) {
       fs.appendFileSync(logPath, `Error building APK: ${error.message}\n`);
@@ -247,5 +274,83 @@ In a production environment, this would be a real Android APK file.`,
   fs.removeSync(tempDir);
 }
 
-// Export the function to be used in other modules
-module.exports = { buildApk };
+/**
+ * Prepares and creates a ZIP file of the source code
+ * @param {string} appDir - Directory with app source code
+ * @param {string} outputPath - Path where the ZIP file should be saved
+ * @param {Object} options - App configuration
+ * @returns {Promise<string>} - Path to the generated ZIP file
+ */
+async function prepareSourceCode(appDir, outputPath, options) {
+  return new Promise((resolve, reject) => {
+    try {
+      const fs = require('fs-extra');
+      const path = require('path');
+      const archiver = require('archiver');
+
+      // Create output directory if it doesn't exist
+      fs.ensureDirSync(path.dirname(outputPath));
+
+      // Create a write stream to the output file
+      const output = fs.createWriteStream(outputPath);
+      const archive = archiver('zip', {
+        zlib: { level: 9 } // Maximum compression
+      });
+
+      output.on('close', () => {
+        console.log(`Source code ZIP created: ${outputPath} (${archive.pointer()} bytes)`);
+        resolve(outputPath);
+      });
+
+      output.on('error', (err) => {
+        reject(err);
+      });
+
+      archive.on('error', (err) => {
+        reject(err);
+      });
+
+      archive.pipe(output);
+
+      // Add the entire app directory to the ZIP
+      archive.directory(appDir, 'app-source');
+
+      // Add a README file with instructions
+      archive.append(`# Source Code for ${options.appName}
+      
+This ZIP file contains the complete source code for your Android application.
+
+## App Configuration
+- Website URL: ${options.webUrl}
+- App Name: ${options.appName}
+- Company Name: ${options.companyName}
+- Package Name: ${options.packageName}
+- Primary Color: ${options.primaryColor}
+- Navigation Style: ${options.navigationStyle}
+- Screen Orientation: ${options.screenOrientation}
+- Offline Support: ${options.offlineSupport ? 'Enabled' : 'Disabled'}
+- Push Notifications: ${options.pushNotifications ? 'Enabled' : 'Disabled'}
+- Zoom: ${options.zoomEnabled ? 'Enabled' : 'Disabled'}
+- Cache Level: ${options.cacheLevel}
+
+## Build Instructions
+1. Install Android Studio: https://developer.android.com/studio
+2. Open the 'app-source' folder in Android Studio
+3. Build the APK from Android Studio, or run:
+   - ./gradlew assembleDebug (for debug version)
+   - ./gradlew assembleRelease (for release version)
+
+For more information, refer to the Android documentation:
+https://developer.android.com/studio/build/building-cmdline
+`, { name: 'README.md' });
+
+      archive.finalize();
+    } catch (error) {
+      console.error('Error creating source code ZIP:', error);
+      reject(error);
+    }
+  });
+}
+
+// Export the functions to be used in other modules
+module.exports = { buildApk, prepareSourceCode };

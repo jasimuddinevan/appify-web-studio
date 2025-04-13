@@ -139,22 +139,32 @@ app.post('/api/generate-apk', async (req, res) => {
     });
 
     if (apkResult.success) {
+      // Build response object
+      const response = {
+        message: 'APK generated successfully',
+        buildId: buildId,
+        apkPath: apkResult.apkPath
+      };
+      
+      // Add source code path if available
+      if (apkResult.sourceCodePath) {
+        response.sourceCodePath = apkResult.sourceCodePath;
+      }
+      
       // Include Google Drive information in the response if available
       if (apkResult.googleDriveInfo) {
-        res.status(200).json({
-          message: 'APK generated and uploaded to Google Drive successfully',
-          buildId: buildId,
-          apkPath: apkResult.apkPath,
-          googleDriveLink: apkResult.googleDriveInfo.webContentLink,
-          googleDriveViewLink: apkResult.googleDriveInfo.webViewLink
-        });
-      } else {
-        res.status(200).json({
-          message: 'APK generated successfully',
-          buildId: buildId,
-          apkPath: apkResult.apkPath
-        });
+        response.googleDriveLink = apkResult.googleDriveInfo.webContentLink;
+        response.googleDriveViewLink = apkResult.googleDriveInfo.webViewLink;
+        response.message = 'APK generated and uploaded to Google Drive successfully';
       }
+      
+      // Include source code Google Drive info if available
+      if (apkResult.sourceCodeDriveInfo) {
+        response.sourceCodeDriveLink = apkResult.sourceCodeDriveInfo.webContentLink;
+        response.sourceCodeDriveViewLink = apkResult.sourceCodeDriveInfo.webViewLink;
+      }
+      
+      res.status(200).json(response);
     } else {
       res.status(500).json({
         error: 'Failed to generate APK',
@@ -187,6 +197,26 @@ app.get('/api/download-apk/:buildId', (req, res) => {
   } catch (error) {
     console.error('Download error:', error);
     res.status(500).json({ error: 'Failed to download APK' });
+  }
+});
+
+// Download the source code ZIP
+app.get('/api/download-source/:buildId', (req, res) => {
+  try {
+    const { buildId } = req.params;
+    const sourceCodePath = path.join(OUTPUT_DIR, `${buildId}-source.zip`);
+    
+    if (!fs.existsSync(sourceCodePath)) {
+      return res.status(404).json({ error: 'Source code file not found' });
+    }
+    
+    const appName = req.query.appName || 'web-app';
+    const sanitizedAppName = appName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+    
+    res.download(sourceCodePath, `${sanitizedAppName}-source.zip`);
+  } catch (error) {
+    console.error('Download error:', error);
+    res.status(500).json({ error: 'Failed to download source code' });
   }
 });
 

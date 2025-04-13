@@ -67,9 +67,10 @@ async function getOrCreateApkFolder() {
  * Upload a file to Google Drive and make it publicly accessible
  * @param {string} filePath - Local path to the file
  * @param {string} fileName - Name for the file in Google Drive
+ * @param {string} mimeType - MIME type of the file (defaults to APK)
  * @returns {Promise<{id: string, webViewLink: string, webContentLink: string}>}
  */
-async function uploadFileToDrive(filePath, fileName) {
+async function uploadFileToDrive(filePath, fileName, mimeType = 'application/vnd.android.package-archive') {
   try {
     const drive = getDriveClient();
     const folderId = await getOrCreateApkFolder();
@@ -82,7 +83,7 @@ async function uploadFileToDrive(filePath, fileName) {
     
     // Media content
     const media = {
-      mimeType: 'application/vnd.android.package-archive',
+      mimeType: mimeType,
       body: fs.createReadStream(filePath)
     };
     
