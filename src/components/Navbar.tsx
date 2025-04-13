@@ -47,57 +47,81 @@ export const Navbar = () => {
 
   return (
     <header 
-      className={`fixed top-0 left-0 right-0 z-50 py-4 px-6 md:px-12 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 py-3 sm:py-4 px-4 sm:px-6 md:px-12 transition-all duration-300 ${
         isScrolled || isMobileMenuOpen
-          ? "bg-white/80 backdrop-blur-md shadow-sm" 
+          ? "bg-white/90 backdrop-blur-md shadow-sm" 
           : "bg-transparent"
       }`}
     >
       <nav className="container mx-auto flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 z-20">
-          <div className="text-2xl font-bold gradient-text">WebToAPK</div>
+          <div className="text-xl sm:text-2xl font-bold gradient-text">WebToAPK</div>
         </Link>
         
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-4 lg:gap-6">
           <Link 
             to="/" 
-            className={`transition-colors font-medium ${
+            className={`transition-colors font-medium text-sm lg:text-base ${
               isScrolled 
                 ? "text-gray-700 hover:text-purple-600" 
-                : "text-gray-800 hover:text-white"
+                : "text-gray-800 hover:text-purple-500"
             }`}
           >
             Home
           </Link>
           <Link 
-            to="/dashboard" 
-            className={`transition-colors font-medium ${
+            to="/features" 
+            className={`transition-colors font-medium text-sm lg:text-base ${
               isScrolled 
                 ? "text-gray-700 hover:text-purple-600" 
-                : "text-gray-800 hover:text-white"
-            }`}
-          >
-            Dashboard
-          </Link>
-          <Link 
-            to="/#features" 
-            className={`transition-colors font-medium ${
-              isScrolled 
-                ? "text-gray-700 hover:text-purple-600" 
-                : "text-gray-800 hover:text-white"
+                : "text-gray-800 hover:text-purple-500"
             }`}
           >
             Features
           </Link>
-          <Button className="btn-gradient">Get Started</Button>
+          <Link 
+            to="/pricing" 
+            className={`transition-colors font-medium text-sm lg:text-base ${
+              isScrolled 
+                ? "text-gray-700 hover:text-purple-600" 
+                : "text-gray-800 hover:text-purple-500"
+            }`}
+          >
+            Pricing
+          </Link>
+          <Link 
+            to="/about" 
+            className={`transition-colors font-medium text-sm lg:text-base ${
+              isScrolled 
+                ? "text-gray-700 hover:text-purple-600" 
+                : "text-gray-800 hover:text-purple-500"
+            }`}
+          >
+            About
+          </Link>
+          <Link 
+            to="/contact" 
+            className={`transition-colors font-medium text-sm lg:text-base ${
+              isScrolled 
+                ? "text-gray-700 hover:text-purple-600" 
+                : "text-gray-800 hover:text-purple-500"
+            }`}
+          >
+            Contact
+          </Link>
+          <Link to="/dashboard">
+            <Button className="btn-gradient py-2 px-4 text-sm lg:text-base">Dashboard</Button>
+          </Link>
         </div>
         
         {/* Mobile Menu Button */}
         <Button 
           variant="ghost" 
-          className="md:hidden z-20"
+          size="sm"
+          className="md:hidden z-20 p-1"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
         >
           {isMobileMenuOpen ? (
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -113,7 +137,7 @@ export const Navbar = () => {
         {/* Mobile Menu */}
         <div 
           ref={menuRef}
-          className={`fixed inset-0 bg-white/95 backdrop-blur-lg z-10 flex flex-col items-center justify-center p-6 space-y-8 transition-all duration-300 md:hidden ${
+          className={`fixed inset-0 bg-white/98 backdrop-blur-lg z-10 flex flex-col items-center justify-center p-6 space-y-6 transition-all duration-300 md:hidden ${
             isMobileMenuOpen 
               ? "opacity-100 pointer-events-auto" 
               : "opacity-0 pointer-events-none"
@@ -127,22 +151,38 @@ export const Navbar = () => {
             Home
           </Link>
           <Link 
-            to="/dashboard" 
-            className="text-gray-700 hover:text-purple-600 transition-colors font-medium text-xl"
-            onClick={handleMobileNavClick}
-          >
-            Dashboard
-          </Link>
-          <Link 
-            to="/#features" 
+            to="/features" 
             className="text-gray-700 hover:text-purple-600 transition-colors font-medium text-xl"
             onClick={handleMobileNavClick}
           >
             Features
           </Link>
-          <Button className="btn-gradient w-full mt-4" onClick={handleMobileNavClick}>
-            Get Started
-          </Button>
+          <Link 
+            to="/pricing" 
+            className="text-gray-700 hover:text-purple-600 transition-colors font-medium text-xl"
+            onClick={handleMobileNavClick}
+          >
+            Pricing
+          </Link>
+          <Link 
+            to="/about" 
+            className="text-gray-700 hover:text-purple-600 transition-colors font-medium text-xl"
+            onClick={handleMobileNavClick}
+          >
+            About
+          </Link>
+          <Link 
+            to="/contact" 
+            className="text-gray-700 hover:text-purple-600 transition-colors font-medium text-xl"
+            onClick={handleMobileNavClick}
+          >
+            Contact
+          </Link>
+          <Link to="/dashboard" className="w-full" onClick={handleMobileNavClick}>
+            <Button className="btn-gradient w-full py-6">
+              Dashboard
+            </Button>
+          </Link>
         </div>
       </nav>
     </header>
