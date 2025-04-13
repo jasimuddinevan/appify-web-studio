@@ -95,10 +95,18 @@ const Dashboard = () => {
     }, 300);
   };
 
-  // State to store Google Drive download link
+  // State to store download links
   const [googleDriveLink, setGoogleDriveLink] = useState("");
   const [googleDriveViewLink, setGoogleDriveViewLink] = useState("");
+  const [sourceCodeDriveLink, setSourceCodeDriveLink] = useState("");
   const [error, setError] = useState("");
+
+  // Get API base URL based on environment
+  const getApiBaseUrl = () => {
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000/api'
+      : '/api';
+  };
 
   // Handle APK download
   const handleDownloadApk = () => {
@@ -129,7 +137,10 @@ const Dashboard = () => {
         // Upload files first if they exist
         if (appIcon || splashScreen) {
           try {
-            const uploadResponse = await fetch('http://localhost:5000/api/upload-config', {
+            // Use the getApiBaseUrl helper function
+            const apiBaseUrl = getApiBaseUrl();
+              
+            const uploadResponse = await fetch(`${apiBaseUrl}/upload-config`, {
               method: 'POST',
               body: formData
             });
@@ -182,8 +193,13 @@ const Dashboard = () => {
           });
         }, 1500);
         
+        // Determine the API base URL based on the environment
+        const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? 'http://localhost:5000/api'
+          : '/api';
+          
         // Call the server API to generate the APK
-        const response = await fetch('http://localhost:5000/api/generate-apk', {
+        const response = await fetch(`${apiBaseUrl}/generate-apk`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -202,6 +218,11 @@ const Dashboard = () => {
         console.log("APK generated:", result);
         
         // Set Google Drive links if available
+        // Store source code link if available
+        if (result.sourceCodeDriveLink) {
+          setSourceCodeDriveLink(result.sourceCodeDriveLink);
+        }
+        
         if (result.googleDriveLink) {
           setGoogleDriveLink(result.googleDriveLink);
           setGoogleDriveViewLink(result.googleDriveViewLink || result.googleDriveLink);
@@ -217,8 +238,11 @@ const Dashboard = () => {
           // Open the Google Drive link in a new tab
           window.open(result.googleDriveLink, '_blank');
         } else if (result.buildId) {
+          // Use the getApiBaseUrl helper function
+          const apiBaseUrl = getApiBaseUrl();
+            
           // If no Google Drive link but we have a buildId, use the direct download endpoint
-          const downloadUrl = `http://localhost:5000/api/download-apk/${result.buildId}?appName=${encodeURIComponent(appName)}`;
+          const downloadUrl = `${apiBaseUrl}/download-apk/${result.buildId}?appName=${encodeURIComponent(appName)}`;
           
           // Create and click a download link
           const a = document.createElement('a');
@@ -708,6 +732,32 @@ const Dashboard = () => {
                   )}
                 </Button>
               </div>
+              
+              {/* Source Code Download Button */}
+              {downloadComplete && (
+                <div className="mt-4">
+                  <Button 
+                    variant="secondary" 
+                    size="lg" 
+                    className="w-full flex gap-2 items-center justify-center" 
+                    onClick={() => {
+                      if (sourceCodeDriveLink) {
+                        // If we have a Google Drive link for source code, use that
+                        window.open(sourceCodeDriveLink, '_blank');
+                      } else if (googleDriveViewLink) {
+                        // Otherwise try to use the direct download endpoint
+                        const apiBaseUrl = getApiBaseUrl();
+                        const sourceCodeUrl = `${apiBaseUrl}/download-source/${googleDriveViewLink.split('id=')[1] || ''}?appName=${encodeURIComponent(appName)}`;
+                        window.open(sourceCodeUrl, '_blank');
+                      }
+                    }}
+                    disabled={!googleDriveViewLink && !sourceCodeDriveLink}
+                  >
+                    <Download className="w-5 h-5" />
+                    Download Source Code
+                  </Button>
+                </div>
+              )}
               
               {isLoading && (
                 <div className="mt-6 glass-card p-4">
