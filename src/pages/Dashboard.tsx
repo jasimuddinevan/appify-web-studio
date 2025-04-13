@@ -134,12 +134,29 @@ const Dashboard = () => {
         let appIconId = null;
         let splashScreenId = null;
         
+        // Get API base URL
+        const apiBaseUrl = getApiBaseUrl();
+        
         // Upload files first if they exist
         if (appIcon || splashScreen) {
           try {
-            // Use the getApiBaseUrl helper function
-            const apiBaseUrl = getApiBaseUrl();
+            setProgress(5);
+            
+            // Check if server is available
+            try {
+              const healthCheckResponse = await fetch(`${apiBaseUrl}/health`, { 
+                method: 'GET',
+                headers: { 'Cache-Control': 'no-cache' }
+              });
               
+              if (!healthCheckResponse.ok) {
+                throw new Error("Server is not available. Please check the server status.");
+              }
+            } catch (healthError) {
+              console.error("Server health check failed:", healthError);
+              throw new Error("Cannot connect to the build server. Please ensure the server is running.");
+            }
+            
             const uploadResponse = await fetch(`${apiBaseUrl}/upload-config`, {
               method: 'POST',
               body: formData
@@ -153,11 +170,13 @@ const Dashboard = () => {
               // Update progress to show files were uploaded
               setProgress(10);
             } else {
-              throw new Error("Failed to upload files");
+              const uploadErrorText = await uploadResponse.text();
+              console.error("Upload response error:", uploadResponse.status, uploadErrorText);
+              throw new Error(`File upload failed (${uploadResponse.status}). Please try again.`);
             }
           } catch (uploadError) {
             console.error("Error uploading files:", uploadError);
-            // Continue anyway, using defaults
+            throw uploadError; // Rethrow to stop the process
           }
         }
         
@@ -181,22 +200,31 @@ const Dashboard = () => {
         
         console.log("Building app with configuration:", appConfig);
         
-        // Start progress updates
+        // Start progress updates - use different stages
         setProgress(15);
-        const progressInterval = setInterval(() => {
-          setProgress(prev => {
-            if (prev >= 95) {
-              clearInterval(progressInterval);
-              return 95;
-            }
-            return prev + 5;
-          });
-        }, 1500);
         
-        // Determine the API base URL based on the environment
-        const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-          ? 'http://localhost:5000/api'
-          : '/api';
+        // Show build stages with periodic updates
+        const buildStages = [
+          { progress: 20, message: "Initializing build environment..." },
+          { progress: 30, message: "Customizing template..." },
+          { progress: 45, message: "Configuring app settings..." },
+          { progress: 60, message: "Compiling resources..." },
+          { progress: 75, message: "Building APK..." },
+          { progress: 90, message: "Signing APK..." },
+          { progress: 95, message: "Finalizing build..." }
+        ];
+        
+        let currentStageIndex = 0;
+        const progressInterval = setInterval(() => {
+          if (currentStageIndex < buildStages.length) {
+            const stage = buildStages[currentStageIndex];
+            setProgress(stage.progress);
+            console.log(stage.message);
+            currentStageIndex++;
+          } else {
+            clearInterval(progressInterval);
+          }
+        }, 3000); // More realistic timing for build stages
           
         // Call the server API to generate the APK
         const response = await fetch(`${apiBaseUrl}/generate-apk`, {
@@ -210,14 +238,29 @@ const Dashboard = () => {
         clearInterval(progressInterval);
         
         if (!response.ok) {
-          const errorResult = await response.json();
-          throw new Error(errorResult.error || "Failed to generate APK");
+          let errorMessage = "Failed to generate APK";
+          try {
+            const errorResult = await response.json();
+            errorMessage = errorResult.error || errorMessage;
+            if (errorResult.details) {
+              errorMessage += `: ${errorResult.details}`;
+            }
+          } catch (parseError) {
+            const errorText = await response.text();
+            errorMessage = errorText || `Server error (${response.status})`;
+          }
+          throw new Error(errorMessage);
         }
         
-        const result = await response.json();
-        console.log("APK generated:", result);
+        let result;
+        try {
+          result = await response.json();
+          console.log("APK generated:", result);
+        } catch (parseError) {
+          console.error("Error parsing response:", parseError);
+          throw new Error("Invalid response from server");
+        }
         
-        // Set Google Drive links if available
         // Store source code link if available
         if (result.sourceCodeDriveLink) {
           setSourceCodeDriveLink(result.sourceCodeDriveLink);
@@ -238,9 +281,6 @@ const Dashboard = () => {
           // Open the Google Drive link in a new tab
           window.open(result.googleDriveLink, '_blank');
         } else if (result.buildId) {
-          // Use the getApiBaseUrl helper function
-          const apiBaseUrl = getApiBaseUrl();
-            
           // If no Google Drive link but we have a buildId, use the direct download endpoint
           const downloadUrl = `${apiBaseUrl}/download-apk/${result.buildId}?appName=${encodeURIComponent(appName)}`;
           
@@ -263,10 +303,10 @@ const Dashboard = () => {
           throw new Error("No APK download information returned from server");
         }
         
-        // Reset download complete message after 5 seconds
+        // Reset download complete message after 10 seconds
         setTimeout(() => {
           setDownloadComplete(false);
-        }, 5000);
+        }, 10000);
       } catch (error) {
         console.error("Error generating APK:", error);
         setError(error.message || "Failed to generate APK");
@@ -767,7 +807,15 @@ const Dashboard = () => {
                       style={{width: `${progress}%`}}
                     />
                   </div>
-                  <p className="text-center text-sm mt-2">Building your Android app... {progress}% complete</p>
+                  <p className="text-center text-sm mt-2">
+                    {progress < 20 && "Preparing build environment..."}
+                    {progress >= 20 && progress < 40 && "Customizing template..."}
+                    {progress >= 40 && progress < 60 && "Building APK..."}
+                    {progress >= 60 && progress < 80 && "Packaging resources..."}
+                    {progress >= 80 && progress < 100 && "Finalizing build..."}
+                    {progress === 100 && "Build complete!"}
+                    {" "}{progress}%
+                  </p>
                   {progress === 100 && (
                     <div className="flex justify-center mt-4">
                       <img 
@@ -777,6 +825,29 @@ const Dashboard = () => {
                       />
                     </div>
                   )}
+                </div>
+              )}
+              
+              {error && (
+                <div className="mt-6 glass-card p-4 bg-red-50 border border-red-100">
+                  <div className="flex items-center justify-center gap-2 text-red-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <p className="font-medium">Build Failed</p>
+                  </div>
+                  <p className="mt-2 text-sm text-red-800">{error}</p>
+                  <div className="mt-3 text-xs text-gray-600 border-t border-red-100 pt-3">
+                    <p>Please check that:</p>
+                    <ul className="list-disc ml-5 mt-1 space-y-1">
+                      <li>The build server is running and accessible</li>
+                      <li>Your website URL is valid and accessible</li>
+                      <li>Package name follows the format "com.company.appname"</li>
+                      <li>All required fields are completed correctly</li>
+                    </ul>
+                  </div>
                 </div>
               )}
               
