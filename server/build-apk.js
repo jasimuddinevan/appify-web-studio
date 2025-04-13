@@ -91,6 +91,8 @@ android.enableJetifier=true
 # App configuration
 WEB_URL=${webUrl}
 APP_NAME=${appName}
+COMPANY_NAME=${companyName}
+PACKAGE_NAME=${packageName}
 PRIMARY_COLOR=${primaryColor}
 NAVIGATION_STYLE=${navigationStyle}
 OFFLINE_SUPPORT=${offlineSupport}
@@ -98,6 +100,7 @@ PUSH_NOTIFICATIONS=${pushNotifications}
 SCREEN_ORIENTATION=${screenOrientation}
 ZOOM_ENABLED=${zoomEnabled}
 CACHE_LEVEL=${cacheLevel}
+NAV_BUTTONS=${JSON.stringify(navButtons)}
 `;
     
     fs.writeFileSync(path.join(appDir, 'gradle.properties'), gradleProps);
@@ -131,10 +134,26 @@ CACHE_LEVEL=${cacheLevel}
       fs.appendFileSync(logPath, `APK generated successfully at: ${finalApkPath}\n`);
       fs.appendFileSync(logPath, `Build completed at: ${new Date().toISOString()}\n`);
       
+      // Upload to Google Drive if the service is available
+      let googleDriveInfo = null;
+      try {
+        const { uploadFileToDrive } = require('./services/googleDrive');
+        fs.appendFileSync(logPath, 'Uploading APK to Google Drive...\n');
+        
+        const apkFileName = `${appName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.apk`;
+        googleDriveInfo = await uploadFileToDrive(finalApkPath, apkFileName);
+        fs.appendFileSync(logPath, `APK uploaded to Google Drive: ${googleDriveInfo.webContentLink}\n`);
+      } catch (driveError) {
+        fs.appendFileSync(logPath, `Warning: Could not upload to Google Drive: ${driveError.message}\n`);
+        console.error('Google Drive upload error:', driveError);
+        // Continue without Google Drive upload
+      }
+      
       return {
         success: true,
         apkPath: finalApkPath,
-        buildId
+        buildId,
+        googleDriveInfo
       };
     } catch (error) {
       fs.appendFileSync(logPath, `Error building APK: ${error.message}\n`);

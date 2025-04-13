@@ -81,6 +81,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Apply navigation style
         applyNavigationStyle();
+        
+        // Set up custom navigation buttons if any
+        setupCustomNavButtons();
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -268,5 +271,82 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         webView.destroy();
         super.onDestroy();
+    }
+    
+    /**
+     * Sets up the custom navigation buttons if specified in the build configuration
+     */
+    private void setupCustomNavButtons() {
+        try {
+            LinearLayout bottomNavigationBar = findViewById(R.id.bottom_navigation_bar);
+            String navButtonsJson = BuildConfig.NAV_BUTTONS;
+            
+            if (navButtonsJson == null || navButtonsJson.equals("[]") || navButtonsJson.isEmpty()) {
+                return; // No navigation buttons to set up
+            }
+            
+            // Parse the navigation buttons JSON
+            org.json.JSONArray navButtonsArray = new org.json.JSONArray(navButtonsJson);
+            if (navButtonsArray.length() == 0) {
+                return; // No buttons
+            }
+            
+            // Show the bottom navigation bar
+            bottomNavigationBar.setVisibility(View.VISIBLE);
+            bottomNavigationBar.removeAllViews(); // Clear any existing buttons
+            
+            // Calculate button width based on number of buttons
+            int buttonWidth = getResources().getDisplayMetrics().widthPixels / navButtonsArray.length();
+            
+            // Add buttons
+            for (int i = 0; i < navButtonsArray.length(); i++) {
+                org.json.JSONObject buttonData = navButtonsArray.getJSONObject(i);
+                String text = buttonData.getString("text");
+                String url = buttonData.getString("url");
+                
+                // Create button
+                Button button = new Button(this);
+                button.setText(text);
+                button.setAllCaps(false);
+                button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11); // Smaller text
+                button.setGravity(Gravity.CENTER);
+                
+                // Apply default color
+                try {
+                    int color = Color.parseColor(BuildConfig.PRIMARY_COLOR);
+                    button.setTextColor(color);
+                } catch (Exception e) {
+                    button.setTextColor(Color.parseColor("#3498db")); // Default blue
+                }
+                
+                // Set layout parameters
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    buttonWidth,
+                    LinearLayout.LayoutParams.MATCH_PARENT
+                );
+                button.setLayoutParams(params);
+                
+                // Set click listener
+                final String finalUrl = url;
+                button.setOnClickListener(v -> {
+                    if (isNetworkAvailable()) {
+                        webView.loadUrl(finalUrl);
+                    }
+                });
+                
+                // Add to navigation bar
+                bottomNavigationBar.addView(button);
+            }
+            
+            // Adjust webview layout if necessary
+            ConstraintLayout.LayoutParams webViewParams = 
+                (ConstraintLayout.LayoutParams) webView.getLayoutParams();
+            webViewParams.bottomToTop = R.id.bottom_navigation_bar;
+            webView.setLayoutParams(webViewParams);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Fail silently - if we can't set up navigation buttons, just continue without them
+        }
     }
 }
